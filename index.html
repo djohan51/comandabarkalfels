@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sistema de Comandas</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- LOGIN -->
+    <section id="loginSection" class="login-wrap">
+      <div class="card login-card">
+        <div class="header">
+          <div class="brand">
+            <span class="brand-dot"></span>
+            <span>Sistema de Comandas</span>
+          </div>
+          <span class="chip">Acesso obrigatório</span>
+        </div>
+        <div class="content">
+          <div class="form">
+            <div class="group">
+              <label for="loginUser">Usuário</label>
+              <input id="loginUser" type="text" autocomplete="username" placeholder="Usuário" />
+            </div>
+            <div class="group">
+              <label for="loginPass">Senha</label>
+              <input id="loginPass" type="password" autocomplete="current-password" placeholder="Senha" />
+            </div>
+            <button class="btn primary icon" id="btnLogin">🔓 Entrar</button>
+            <div class="hint">A sessão permanece ativa via <strong>localStorage</strong>.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APP -->
+    <section id="appSection" class="card" style="display:none">
+      <div class="header">
+        <!-- ESQUERDA: Sair + usuário -->
+        <div class="brand">
+          <span class="brand-dot"></span>
+          <button class="btn danger small" id="btnLogout">Sair</button>
+          <span id="userLabel" class="chip"></span>
+        </div>
+
+        <!-- NAV NA ORDEM SOLICITADA -->
+        <div class="nav">
+          <div class="nav-left">
+            <button class="btn small" data-goto="2">➕ Nova</button>
+            <button class="btn outline small" data-goto="1">🏠 Início</button>
+            <button class="btn small" data-goto="3">📜 Fiado (todas)</button>
+          </div>
+          <div class="nav-right">
+            <button class="btn small" data-goto="6">❌ Fiado Não Pagas</button>
+            <button class="btn small" data-goto="7">✅ Fiado Pagas</button>
+            <button class="btn small" data-goto="5">✅ Normais Pagas</button>
+            <button class="btn small" data-goto="4">❌ Normais Não Pagas</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- 1) Visão Geral -->
+        <div id="page1" class="page">
+          <h2>Visão geral — todas as comandas</h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchAll" type="text" placeholder="Buscar cliente (todas as comandas)" />
+          </div>
+          <div id="tableAll"></div>
+        </div>
+
+        <!-- 2) Nova -->
+        <div id="page2" class="page" style="display:none">
+          <h2>Criar nova comanda</h2>
+          <form class="form" id="newForm" onsubmit="return false">
+            <div class="group">
+              <label for="clienteInput">Nome do cliente</label>
+              <input id="clienteInput" type="text" placeholder="Ex: Maria Silva" required />
+            </div>
+
+            <div class="group">
+              <label>Produtos</label>
+              <div class="grid">
+                <div class="product">
+                  <div><strong>Coca-Cola</strong><br><small class="muted">R$ 6,00</small></div>
+                  <div class="row">
+                    <button type="button" class="btn ghost" onclick="changeQty('coca',-1)">–</button>
+                    <input id="qtyCoca" class="qty" type="number" min="0" value="0" />
+                    <button type="button" class="btn ghost" onclick="changeQty('coca',1)">+</button>
+                  </div>
+                </div>
+                <div class="product">
+                  <div><strong>Amendoim</strong><br><small class="muted">R$ 2,00</small></div>
+                  <div class="row">
+                    <button type="button" class="btn ghost" onclick="changeQty('amendoim',-1)">–</button>
+                    <input id="qtyAmendoim" class="qty" type="number" min="0" value="0" />
+                    <button type="button" class="btn ghost" onclick="changeQty('amendoim',1)">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row between">
+              <div class="total">Total: <span id="totalPreview">R$ 0,00</span></div>
+              <div class="row">
+                <button class="btn outline" type="reset" id="btnLimpar">Limpar</button>
+                <button class="btn" type="button" id="btnSalvarNormal">Finalizar Comanda</button>
+                <button class="btn warning" type="button" id="btnSalvarFiado">Salvar como Fiado</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- 3) Fiado (todas) -->
+        <div id="page3" class="page" style="display:none">
+          <h2>Comandas Fiado — todas</h2>
+          <div id="tableFiado"></div>
+        </div>
+
+        <!-- 4) Não Pagas (normal + fiado) -->
+        <div id="page4" class="page" style="display:none">
+          <h2>Comandas Não Pagas — <span class="badge unpaid">❌ Não Pagas</span></h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchUnpaid" type="text" placeholder="Buscar cliente (somente não pagas: normal + fiado)" />
+          </div>
+          <!-- Painel de seleção (APENAS AQUI) -->
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll4" /> Selecionar todas as visíveis (não pagas)
+            </label>
+            <span class="chip">Total selecionado: <strong id="selectedTotal4">R$ 0,00</strong></span>
+            <button id="btnBulkPay4" class="btn success small" disabled>Pagar selecionadas</button>
+          </div>
+          <div id="tableNormaisNP"></div>
+        </div>
+
+        <!-- 5) Pagas (normal + fiado) -->
+        <div id="page5" class="page" style="display:none">
+          <h2>Comandas Pagas — <span class="badge paid">✅ Pagas</span></h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchPaid" type="text" placeholder="Buscar cliente (somente pagas: normal + fiado)" />
+          </div>
+          <div id="tableNormaisP"></div>
+        </div>
+
+        <!-- 6) Fiado Não Pagas -->
+        <div id="page6" class="page" style="display:none">
+          <h2>Comandas Fiado — <span class="badge unpaid">❌ Não Pagas</span></h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchFiadoNP" type="text" placeholder="Buscar cliente (fiado não pagas)" />
+          </div>
+          <!-- Painel de seleção (APENAS AQUI) -->
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll6" /> Selecionar todas as visíveis (não pagas)
+            </label>
+            <span class="chip">Total selecionado: <strong id="selectedTotal6">R$ 0,00</strong></span>
+            <button id="btnBulkPay6" class="btn success small" disabled>Pagar selecionadas</button>
+          </div>
+          <div id="tableFiadoNP"></div>
+        </div>
+
+        <!-- 7) Fiado Pagas -->
+        <div id="page7" class="page" style="display:none">
+          <h2>Comandas Fiado — <span class="badge paid">✅ Pagas</span></h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchFiadoP" type="text" placeholder="Buscar cliente (fiado pagas)" />
+          </div>
+          <div id="tableFiadoP"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <header>
+        <strong id="modalTitle">Pagamento</strong>
+        <button class="btn ghost" id="btnCloseModal">✖</button>
+      </header>
+      <div class="body" id="modalBody"></div>
+      <div class="actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  // Config do Firebase (fornecida por você)
+  window.FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBq_tTa-HKg1T11vvEI5k0Elr43_n8LxoE",
+    authDomain: "comandabar-65318.firebaseapp.com",
+    projectId: "comandabar-65318",
+    storageBucket: "comandabar-65318.firebasestorage.app",
+    messagingSenderId: "881850051646",
+    appId: "1:881850051646:web:30058f63fbaf1e10b9b56f",
+    measurementId: "G-SRFVD5N6ZS"
+  };
+</script>
+
+<script src="script.js"></script>
+</body>
+</html>
