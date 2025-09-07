@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sistema de Comandas</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <section id="appSection" class="card">
+      <div class="header">
+        <div class="brand">
+          <span class="brand-dot"></span>
+          <strong>Sistema de Comandas</strong>
+          <span class="chip">localStorage</span>
+        </div>
+
+        <!-- Navegação -->
+        <div class="nav">
+          <div class="nav-left">
+            <button class="btn small" data-goto="2">➕ Nova</button>
+            <button class="btn outline small" data-goto="1">🏠 Início</button>
+            <button class="btn small" data-goto="3">📜 Fiado (todas)</button>
+            <button class="btn small" data-goto="8">📊 Relatório</button>
+          </div>
+          <div class="nav-right">
+            <button class="btn small" data-goto="4">❌ Normais Não Pagas</button>
+            <button class="btn small" data-goto="5">✅ Normais Pagas</button>
+            <button class="btn small" data-goto="6">❌ Fiado Não Pagas</button>
+            <button class="btn small" data-goto="7">✅ Fiado Pagas</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- 1) Visão geral (todas) -->
+        <div id="page1" class="page">
+          <h2>Visão geral — todas as comandas</h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchAll" type="text" placeholder="Buscar cliente (todas as comandas)" />
+          </div>
+          <!-- Seleção em massa -->
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll1" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel1" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableAll"></div>
+        </div>
+
+        <!-- 2) Nova comanda -->
+        <div id="page2" class="page" style="display:none">
+          <h2>Criar nova comanda</h2>
+          <form class="form" id="newForm" onsubmit="return false">
+            <div class="group">
+              <label for="clienteInput">Nome do cliente</label>
+              <input id="clienteInput" type="text" placeholder="Ex: Maria Silva" required />
+            </div>
+            <div class="group">
+              <label for="valorConsumido">Valor consumido (R$)</label>
+              <input id="valorConsumido" type="number" step="0.01" min="0" value="0" />
+            </div>
+            <div class="row between">
+              <div class="total">Total: <span id="totalPreview">R$ 0,00</span></div>
+              <div class="row">
+                <button class="btn outline" type="reset" id="btnLimpar">Limpar</button>
+                <button class="btn" type="button" id="btnSalvarNormal">Finalizar Comanda</button>
+                <button class="btn warning" type="button" id="btnSalvarFiado">Salvar como Fiado</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- 3) Fiado (todas) -->
+        <div id="page3" class="page" style="display:none">
+          <h2>Comandas Fiado — todas</h2>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll3" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel3" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableFiado"></div>
+        </div>
+
+        <!-- 4) Normais Não Pagas -->
+        <div id="page4" class="page" style="display:none">
+          <h2>Comandas — <span class="badge unpaid">❌ Normais Não Pagas</span></h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchUnpaidN" type="text" placeholder="Buscar cliente (normais não pagas)" />
+            <input id="dt4Start" type="date" />
+            <input id="dt4End" type="date" />
+            <button class="btn small" id="btn4Clear">Limpar datas</button>
+          </div>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll4" /> Selecionar todas as visíveis
+            </label>
+            <span class="chip">Total selecionado: <strong id="selectedTotal4">R$ 0,00</strong></span>
+            <button id="btnBulkPay4" class="btn success small" disabled>Pagar selecionadas</button>
+            <button id="btnBulkDel4" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableNormaisNP"></div>
+        </div>
+
+        <!-- 5) Normais Pagas -->
+        <div id="page5" class="page" style="display:none">
+          <h2>Comandas — <span class="badge paid">✅ Normais Pagas</span></h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchPaidN" type="text" placeholder="Buscar cliente (normais pagas)" />
+            <input id="dt5Start" type="date" />
+            <input id="dt5End" type="date" />
+            <button class="btn small" id="btn5Clear">Limpar datas</button>
+          </div>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll5" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel5" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableNormaisP"></div>
+        </div>
+
+        <!-- 6) Fiado Não Pagas -->
+        <div id="page6" class="page" style="display:none">
+          <h2>Comandas Fiado — <span class="badge unpaid">❌ Não Pagas</span></h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchFiadoNP" type="text" placeholder="Buscar cliente (fiado não pagas)" />
+            <input id="dt6Start" type="date" />
+            <input id="dt6End" type="date" />
+            <button class="btn small" id="btn6Clear">Limpar datas</button>
+          </div>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll6" /> Selecionar todas as visíveis
+            </label>
+            <span class="chip">Total selecionado: <strong id="selectedTotal6">R$ 0,00</strong></span>
+            <button id="btnBulkPay6" class="btn success small" disabled>Pagar selecionadas</button>
+            <button id="btnBulkDel6" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableFiadoNP"></div>
+        </div>
+
+        <!-- 7) Fiado Pagas -->
+        <div id="page7" class="page" style="display:none">
+          <h2>Comandas Fiado — <span class="badge paid">✅ Pagas</span></h2>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="searchFiadoP" type="text" placeholder="Buscar cliente (fiado pagas)" />
+            <input id="dt7Start" type="date" />
+            <input id="dt7End" type="date" />
+            <button class="btn small" id="btn7Clear">Limpar datas</button>
+          </div>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll7" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel7" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableFiadoP"></div>
+        </div>
+
+        <!-- 8) Relatório -->
+        <div id="page8" class="page" style="display:none">
+          <h2>📊 Relatório de Pagamentos</h2>
+
+          <!-- (A) Totais por método dentro do intervalo de pagamento -->
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="dtRStart" type="date" />
+            <input id="dtREnd" type="date" />
+            <button class="btn small" id="btnRRefresh">Atualizar</button>
+            <button class="btn outline small" id="btnRClear">Limpar</button>
+          </div>
+          <div id="reportBox" style="margin-bottom:18px"></div>
+
+          <hr style="border:0;border-top:1px solid var(--line); margin:18px 0" />
+
+          <!-- (B) Consumo por cliente -->
+          <h3 style="margin:0 0 10px 0">Consumo por cliente</h3>
+          <div class="row" style="gap:10px; margin-bottom:10px">
+            <input id="rptName" type="text" placeholder="Nome do cliente (parte do nome já funciona)" />
+            <input id="dtCStart" type="date" />
+            <input id="dtCEnd" type="date" />
+
+            <label class="radio-card" style="padding:6px 10px">
+              <input type="radio" name="rptDateBase" id="rptBaseCriacao" value="criacao" checked />
+              usar data de criação
+            </label>
+            <label class="radio-card" style="padding:6px 10px">
+              <input type="radio" name="rptDateBase" id="rptBasePagamento" value="pagamento" />
+              usar data de pagamento (apenas pagas)
+            </label>
+
+            <button class="btn small" id="btnCSearch">Pesquisar</button>
+            <button class="btn outline small" id="btnCClear">Limpar</button>
+          </div>
+          <div id="clientReportSummary" class="chip" style="margin-bottom:10px"></div>
+          <div id="clientReportBox"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal -->
+  <div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <header>
+        <strong id="modalTitle">Pagamento</strong>
+        <button class="btn ghost" id="btnCloseModal">✖</button>
+      </header>
+      <div class="body" id="modalBody"></div>
+      <div class="actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs (opcional) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
+    window.FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBq_tTa-HKg1T11vvEI5k0Elr43_n8LxoE",
+      authDomain: "comandabar-65318.firebaseapp.com",
+      projectId: "comandabar-65318",
+      storageBucket: "comandabar-65318.firebasestorage.app",
+      messagingSenderId: "881850051646",
+      appId: "1:881850051646:web:30058f63fbaf1e10b9b56f",
+      measurementId: "G-SRFVD5N6ZS"
+    };
+  </script>
+
+  <script src="script.js"></script>
+</body>
+</html>
