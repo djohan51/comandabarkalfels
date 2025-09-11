@@ -1,11 +1,7 @@
 /*******************
  * CONFIG & UTILS  *
  *******************/
-const USE_FIREBASE = false;         // true se quiser sincronizar com Firestore
-const LS_DATA_KEY  = 'COMANDAS_DATA_V2';
-const LS_AUTH_KEY  = 'COMANDAS_AUTH_V1';
-const AUTH_PASS    = '1234';        // 🔐 senha padrão (troque aqui)
-
+const USE_FIREBASE = true;     // ✅ tempo real ligado
 const fmtBRL = (v)=> (v||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const uid    = ()=> Math.random().toString(36).slice(2) + Date.now().toString(36);
 const nowStr = ()=> {
@@ -40,52 +36,69 @@ function isWithinRange(dateObj, startStr, endStr){
 }
 
 /*******************
- * FIREBASE (opt)  *
+ * FIREBASE BACKEND
  *******************/
-let FB = { app:null, db:null };
-function coll(){ return FB.db.collection('comandas'); }
-if (USE_FIREBASE && window.firebase && window.FIREBASE_CONFIG){
-  try{
-    FB.app = firebase.initializeApp(window.FIREBASE_CONFIG);
-    FB.db  = firebase.firestore();
-  }catch(e){ console.error('Firebase init error:', e); }
+let db = null, auth = null;
+let STATE = [];   // espelho da coleção
+let unsubscribe = null;
+
+function fbInit(){
+  if (!USE_FIREBASE) return;
+  db = firebase.firestore();
+  auth = firebase.auth();
 }
 
-/*******************
- * DATA LAYER      *
- *******************/
-function getData(){
-  try{
-    const raw = localStorage.getItem(LS_DATA_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  }catch(e){ return [] }
-}
-function setData(arr){
-  localStorage.setItem(LS_DATA_KEY, JSON.stringify(arr||[]));
-}
-async function syncFromFirebase(){
-  if(!USE_FIREBASE || !FB.db) return;
-  const snap = await coll().orderBy('datetime','desc').get();
-  const arr = [];
-  snap.forEach(doc=> arr.push(doc.data()));
-  setData(arr);
+function fbSubscribe(){
+  if (!USE_FIREBASE || !db) return;
+  if (unsubscribe) unsubscribe();
+
+  unsubscribe = db.collection('comandas')
+    .orderBy('createdAt', 'desc')
+    .onSnapshot((snap)=>{
+      STATE = snap.docs.map(d => {
+        const val = d.data() || {};
+        // padroniza campos esperados na UI
+        return {
+          id: d.id,
+          cliente: val.cliente || '',
+          datetime: val.datetime || '-',
+          isFiado: !!val.isFiado,
+          paid: !!val.paid,
+          paymentMethod: val.paymentMethod || null,
+          paymentDate: val.paymentDate || null,
+          items: val.items || [],
+          total: Number(val.total || 0)
+        };
+      });
+      renderTables();
+      // Atualiza relatório se estiver aberto
+      if (document.querySelector('#page8')?.style.display !== 'none') {
+        renderReport();
+      }
+    }, (err)=> {
+      console.error('Snapshot error', err);
+      alert('Erro ao sincronizar com o Firestore: ' + (err?.message || err));
+    });
 }
 
-/*******************
- * AUTH (local)    *
- *******************/
-function isLoggedIn(){
-  try{ return !!JSON.parse(localStorage.getItem(LS_AUTH_KEY)); }catch{ return false }
+async function fbAddComanda(row){
+  await db.collection('comandas').add({
+    cliente: row.cliente,
+    datetime: row.datetime,           // string pt-BR para exibição
+    isFiado: row.isFiado,
+    paid: false,
+    paymentMethod: null,
+    paymentDate: null,
+    items: [],
+    total: Number(row.total || 0),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
-function getLoggedUser(){
-  try{ return (JSON.parse(localStorage.getItem(LS_AUTH_KEY))||{}).user || ''; }catch{ return '' }
+async function fbUpdateComanda(id, patch){
+  await db.collection('comandas').doc(id).update(patch);
 }
-function setLoggedIn(user){
-  localStorage.setItem(LS_AUTH_KEY, JSON.stringify({user, ts: Date.now()}));
-}
-function logout(){
-  localStorage.removeItem(LS_AUTH_KEY);
+async function fbDeleteComanda(id){
+  await db.collection('comandas').doc(id).delete();
 }
 
 /*******************
@@ -103,14 +116,14 @@ function showLogin(){
 function showApp(){
   $('#loginSection').style.display = 'none';
   $('#appSection').style.display   = 'block';
-  $('#userLabel').textContent      = getLoggedUser();
+  $('#dbMode').textContent         = USE_FIREBASE ? 'Firebase' : 'localStorage';
   renderTables();
   goto(1);
 }
-function applyAuthState(){
-  if(isLoggedIn()) showApp(); else showLogin();
-}
 
+/*******************
+ * NAVEGAÇÃO       *
+ *******************/
 function goto(n){
   $$(".page").forEach(p=> { if(p) p.style.display = 'none'; });
   const page = $(`#page${n}`);
@@ -120,6 +133,9 @@ function goto(n){
   if(n===8) renderReport();            // relatório
 }
 
+/*******************
+ * TABELAS         *
+ *******************/
 function buildTable(rows){
   if(!rows || !rows.length){
     return `<div class="empty">Nenhuma comanda encontrada.</div>`;
@@ -157,9 +173,6 @@ function matchByName(q){
   return (c)=> (c.cliente||'').toLowerCase().includes(q);
 }
 
-/*******************
- * RENDER LISTAS   *
- *******************/
 function safeSetHTML(sel, html){
   const el = $(sel);
   if(el) el.innerHTML = html;
@@ -240,19 +253,14 @@ function saveComanda(isFiado){
   if(!cliente){ alert('Informe o nome do cliente.'); return }
   if(total <= 0){ alert('Informe o valor consumido.'); return }
 
-  const row = { id:uid(), cliente, datetime:nowStr(), items:[], total, isFiado, paid:false, paymentMethod:null, paymentDate:null };
-  const data = getData();
-  data.unshift(row);
-  setData(data);
+  const row = { cliente, datetime:nowStr(), items:[], total, isFiado, paid:false, paymentMethod:null, paymentDate:null };
 
-  if(USE_FIREBASE && FB.db){
-    try{ coll().doc(row.id).set(row); }catch(e){ console.error(e); }
-  }
-
-  $('#newForm')?.reset();
-  updateTotalPreview();
-  renderTables();
-  goto(isFiado ? 6 : 4);
+  fbAddComanda(row).then(()=>{
+    $('#newForm')?.reset();
+    updateTotalPreview();
+    // Lista atualiza pelo onSnapshot
+    goto(isFiado ? 6 : 4);
+  }).catch(e=> alert('Erro ao salvar: '+(e?.message||e)));
 }
 
 /*******************
@@ -290,29 +298,82 @@ function openPay(id){
   );
   $('#btnDoPay')?.addEventListener('click', ()=>{
     const method = $('#payMethod')?.value;
-    c.paid = true; c.paymentMethod = method; c.paymentDate = nowStr();
-    setData(data);
-    if(USE_FIREBASE && FB.db){ try{ coll().doc(c.id).set(c); }catch(e){} }
-    renderTables();
-    closeModal();
+    const patch = { paid: true, paymentMethod: method, paymentDate: nowStr() };
+    fbUpdateComanda(c.id, patch)
+      .then(()=> closeModal())
+      .catch(e=> alert('Erro: '+(e?.message||e)));
   });
   $('#btnCancelPay')?.addEventListener('click', closeModal);
 }
+
+/* ====== DETALHES (edição de nome/valor/método) ====== */
 function openDetails(id){
-  const c = getData().find(x=> x.id===id);
+  const data = getData();
+  const c = data.find(x=> x.id===id);
   if(!c) return;
-  const body = `
+
+  let body = `
     <div class="form">
-      <div><strong>Cliente:</strong> ${c.cliente}</div>
+      <div class="group">
+        <label for="editCliente"><strong>Nome do cliente</strong></label>
+        <input id="editCliente" type="text" value="${(c.cliente || '').replace(/"/g,'&quot;')}" />
+      </div>
       <div><strong>Tipo:</strong> ${c.isFiado ? 'Fiado' : 'Normal'}</div>
       <div><strong>Criada em:</strong> ${c.datetime}</div>
       <div><strong>Status:</strong> ${c.paid ? '✅ Pago' : '❌ Não Pago'}</div>
-      ${c.paid ? `<div><strong>Método:</strong> ${c.paymentMethod}</div>` : ''}
-      ${c.paid ? `<div><strong>Pago em:</strong> ${c.paymentDate}</div>` : ''}
-      <div><strong>Total:</strong> ${fmtBRL(c.total)}</div>
-    </div>`;
-  openModal('Detalhes da Comanda', body, `<button class="btn outline" id="btnCloseDetails">Fechar</button>`);
+  `;
+
+  if(c.paid){
+    body += `
+      <div><strong>Pago em:</strong> ${c.paymentDate || '-'}</div>
+      <div class="group">
+        <label for="editTotal"><strong>Editar total (R$)</strong></label>
+        <input id="editTotal" type="number" step="0.01" min="0" value="${Number(c.total || 0).toFixed(2)}" />
+      </div>
+      <div class="group">
+        <label for="editMethod"><strong>Editar método de pagamento</strong></label>
+        <select id="editMethod" class="input">
+          <option ${/dinheiro/i.test(c.paymentMethod||'') ? 'selected' : ''}>Dinheiro</option>
+          <option ${/pix/i.test(c.paymentMethod||'') ? 'selected' : ''}>Pix</option>
+          <option ${/d[eé]bito/i.test(c.paymentMethod||'') ? 'selected' : ''}>Débito</option>
+          <option ${/cr[eé]dito/i.test(c.paymentMethod||'') ? 'selected' : ''}>Crédito</option>
+        </select>
+      </div>
+    `;
+  }else{
+    body += `<div><strong>Total:</strong> ${fmtBRL(c.total)}</div>`;
+  }
+
+  body += `</div>`;
+
+  const actions = `
+    <button class="btn" id="btnSaveChanges">Salvar alterações</button>
+    <button class="btn outline" id="btnCloseDetails">Fechar</button>
+  `;
+
+  openModal('Detalhes da Comanda', body, actions);
+
   $('#btnCloseDetails')?.addEventListener('click', closeModal);
+
+  $('#btnSaveChanges')?.addEventListener('click', ()=>{
+    const newName = ($('#editCliente')?.value || '').trim();
+    if(!newName){ alert('Informe um nome de cliente válido.'); return; }
+
+    const patch = { cliente: newName };
+
+    if(c.paid){
+      const newTotal  = parseFloat($('#editTotal')?.value || 'NaN');
+      const newMethod = ($('#editMethod')?.value || '').trim();
+      if(isNaN(newTotal) || newTotal < 0){ alert('Valor inválido.'); return; }
+      if(!newMethod){ alert('Selecione um método.'); return; }
+      patch.total = newTotal;
+      patch.paymentMethod = newMethod;
+    }
+
+    fbUpdateComanda(c.id, patch)
+      .then(()=> closeModal())
+      .catch(e=> alert('Erro: '+(e?.message||e)));
+  });
 }
 
 /*******************
@@ -320,13 +381,7 @@ function openDetails(id){
  *******************/
 function deleteComanda(id){
   if(!confirm('Excluir esta comanda? Esta ação não pode ser desfeita.')) return;
-  const data = getData();
-  const idx = data.findIndex(x=> x.id===id);
-  if(idx<0) return;
-  const removed = data.splice(idx,1)[0];
-  setData(data);
-  if(USE_FIREBASE && FB.db){ try{ coll().doc(removed.id).delete(); }catch(e){} }
-  renderTables();
+  fbDeleteComanda(id).catch(e=> alert('Erro: '+(e?.message||e)));
 }
 
 /*****************************************
@@ -417,24 +472,14 @@ function bulkDeleteVisible(tableId){
   if(!ids.length){ alert('Selecione ao menos uma comanda.'); return; }
   if(!confirm(`Excluir ${ids.length} comandas selecionadas? Esta ação não pode ser desfeita.`)) return;
 
-  const data = getData();
-  let changed = false;
-
-  ids.forEach(id=>{
-    const idx = data.findIndex(x=> x.id === id);
-    if(idx >= 0){
-      const removed = data.splice(idx,1)[0];
-      Selected.delete(id);
-      if(USE_FIREBASE && FB.db){ try{ coll().doc(id).delete(); }catch(e){} }
-      changed = true;
-    }
-  });
-
-  if(changed) setData(data);
-  renderTables();
-  refreshBulkButtonsState();
-  refreshSelectedTotals();
-  syncSelectAllBoxes();
+  Promise.all(ids.map(id => fbDeleteComanda(id)))
+    .catch(e=> alert('Erro: '+(e?.message||e)))
+    .finally(()=>{
+      ids.forEach(id=> Selected.delete(id));
+      refreshBulkButtonsState();
+      refreshSelectedTotals();
+      syncSelectAllBoxes();
+    });
 }
 function bulkPayVisible(tableId){
   const ids = getVisibleIds(tableId).filter(id=> Selected.has(id));
@@ -449,25 +494,14 @@ function bulkPayVisible(tableId){
     return;
   }
 
-  const data = getData();
-  const now = nowStr();
-  let changed = false;
-
-  ids.forEach(id=>{
-    const c = data.find(x=> x.id === id);
-    if(!c || c.paid) return;
-    c.paid = true;
-    c.paymentMethod = metodo.trim();
-    c.paymentDate = now;
-    changed = true;
-    if(USE_FIREBASE && FB.db){ try{ coll().doc(c.id).set(c); }catch(e){} }
-  });
-
-  if(changed) setData(data);
-  renderTables();
-  refreshBulkButtonsState();
-  refreshSelectedTotals();
-  syncSelectAllBoxes();
+  const patch = { paid:true, paymentMethod:metodo.trim(), paymentDate:nowStr() };
+  Promise.all(ids.map(id => fbUpdateComanda(id, patch)))
+    .catch(e=> alert('Erro: '+(e?.message||e)))
+    .finally(()=>{
+      refreshBulkButtonsState();
+      refreshSelectedTotals();
+      syncSelectAllBoxes();
+    });
 }
 function applySelectionToAllTables(){
   applyRowSelection('tableAll');
@@ -520,6 +554,8 @@ function applySelectionToAllTables(){
 /*******************
  * RELATÓRIO       *
  *******************/
+function getData(){ return STATE; } // 🔄 origem passa a ser Firestore (STATE)
+
 function renderReport(){
   // (A) Totais por método (pagas)
   const box = $('#reportBox');
@@ -614,18 +650,25 @@ window.addEventListener('DOMContentLoaded', ()=>{
   backdrop = $('#modalBackdrop');
   $('#btnCloseModal')?.addEventListener('click', closeModal);
 
-  // LOGIN
-  $('#btnLogin')?.addEventListener('click', ()=>{
-    const u = $('#loginUser')?.value.trim();
-    const p = $('#loginPass')?.value;
-    if(!u || !p){ alert('Informe usuário e senha.'); return; }
-    if(p !== AUTH_PASS){ alert('Senha incorreta.'); return; }
-    setLoggedIn(u);
-    applyAuthState();
+  // Firebase init
+  fbInit();
+
+  // Auth: login/logout
+  $('#btnLogin')?.addEventListener('click', async ()=>{
+    const email = $('#loginUser')?.value.trim();
+    const pass  = $('#loginPass')?.value;
+    if(!email || !pass){ alert('Informe e-mail e senha.'); return; }
+    try{
+      await auth.signInWithEmailAndPassword(email, pass);
+      // onAuthStateChanged cuidará do restante
+    }catch(e){
+      console.error(e);
+      alert('Falha no login: ' + (e?.message || e));
+    }
   });
-  $('#btnLogout')?.addEventListener('click', ()=>{
-    logout();
-    applyAuthState();
+
+  $('#btnLogout')?.addEventListener('click', async ()=>{
+    try{ await auth.signOut(); }catch(e){}
   });
 
   // Navegação app
@@ -662,7 +705,16 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#rptBaseCriacao')?.addEventListener('change', renderReport);
   $('#rptBasePagamento')?.addEventListener('change', renderReport);
 
-  // Dados iniciais
-  // if(USE_FIREBASE) syncFromFirebase().then(applyAuthState); else applyAuthState();
-  applyAuthState(); // usando localStorage por padrão
+  // Observa estado de autenticação
+  auth?.onAuthStateChanged(user=>{
+    if(user){
+      $('#userLabel').textContent = user.email || 'Usuário';
+      showApp();
+      fbSubscribe();
+    }else{
+      showLogin();
+      if (unsubscribe) unsubscribe();
+      STATE = [];
+    }
+  });
 });

@@ -79,6 +79,39 @@ td[data-label="Total"]{ text-align:right; font-variant-numeric: tabular-nums; }
 .login-wrap{ display:flex; align-items:center; justify-content:center; min-height:70vh; }
 .login-card .hint{ color:var(--muted); font-size:12px; margin-top:8px; }
 
+/* === CORES DOS BOTÕES DE NAVEGAÇÃO POR STATUS/TIPO === */
+/* Normais Pagas (VERDE) */
+.nav-right .btn[data-goto="5"]{
+  background: var(--success);
+  color: #0b110d;
+  border-color: transparent;
+}
+
+/* Normais Não Pagas (VERMELHO) */
+.nav-right .btn[data-goto="4"]{
+  background: var(--danger);
+  color: #320000;
+  border-color: transparent;
+}
+
+/* Fiado (todas), Fiado Não Pagas e Fiado Pagas (AMARELO) */
+.nav-left  .btn[data-goto="3"],
+.nav-right .btn[data-goto="6"],
+.nav-right .btn[data-goto="7"]{
+  background: var(--warning);
+  color: #1a1400;
+  border-color: transparent;
+}
+
+/* Hover leve para todos os botões acima */
+.nav .btn[data-goto="3"]:hover,
+.nav .btn[data-goto="4"]:hover,
+.nav .btn[data-goto="5"]:hover,
+.nav .btn[data-goto="6"]:hover,
+.nav .btn[data-goto="7"]:hover{
+  filter: brightness(1.05);
+}
+
 @media (max-width:720px){
   .nav{ gap:8px; }
   .nav-left, .nav-right{ width:100%; justify-content:flex-start; }
