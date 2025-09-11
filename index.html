@@ -68,9 +68,9 @@
       </div>
 
       <div class="content">
-        <!-- (suas páginas/tabelas iguais) -->
+        <!-- PAGE 1: Todas -->
         <div id="page1" class="page">
-          <h2>todas as comandas</h2>
+          <h2>Todas as comandas</h2>
           <div class="row" style="gap:10px; margin-bottom:10px">
             <input id="searchAll" type="text" placeholder="Buscar cliente (todas as comandas)" />
           </div>
@@ -83,8 +83,155 @@
           <div id="tableAll"></div>
         </div>
 
-        <!-- ... restante das páginas exatamente como você já tinha ... -->
-        <!-- (pages 2 a 8, modal etc) -->
+        <!-- PAGE 2: Nova comanda -->
+        <div id="page2" class="page" style="display:none">
+          <h2>Nova comanda</h2>
+          <form id="newForm" class="form" onsubmit="return false">
+            <div class="group">
+              <label for="clienteInput">Cliente</label>
+              <input id="clienteInput" type="text" placeholder="Nome do cliente" />
+            </div>
+            <div class="group">
+              <label for="valorConsumido">Valor consumido (R$)</label>
+              <input id="valorConsumido" type="number" step="0.01" min="0" value="0" />
+            </div>
+            <div class="total">Total: <strong id="totalPreview">R$ 0,00</strong></div>
+            <div class="row" style="gap:8px; margin-top:10px">
+              <button type="button" id="btnLimpar" class="btn outline">Limpar valor</button>
+              <button type="button" id="btnSalvarNormal" class="btn success">Salvar (Normal)</button>
+              <button type="button" id="btnSalvarFiado" class="btn warning">Salvar (Fiado)</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- PAGE 3: Fiado (todas) -->
+        <div id="page3" class="page" style="display:none">
+          <h2>Fiado (todas)</h2>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll3" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel3" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableFiado"></div>
+        </div>
+
+        <!-- PAGE 4: Normais Não Pagas -->
+        <div id="page4" class="page" style="display:none">
+          <h2>Normais — Não Pagas</h2>
+          <div class="row between" style="gap:10px; margin-bottom:10px">
+            <input id="searchUnpaidN" type="text" placeholder="Buscar cliente" />
+            <div class="row" style="gap:6px">
+              <input id="dt4Start" type="date" />
+              <input id="dt4End" type="date" />
+              <button id="btn4Clear" class="btn outline small" type="button">Limpar datas</button>
+            </div>
+          </div>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll4" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel4" class="btn danger small" disabled>Excluir selecionadas</button>
+            <button id="btnBulkPay4" class="btn success small" disabled>Pagar selecionadas</button>
+            <span class="chip">Total selecionado: <strong id="selectedTotal4">R$ 0,00</strong></span>
+          </div>
+          <div id="tableNormaisNP"></div>
+        </div>
+
+        <!-- PAGE 5: Normais Pagas -->
+        <div id="page5" class="page" style="display:none">
+          <h2>Normais — Pagas</h2>
+          <div class="row between" style="gap:10px; margin-bottom:10px">
+            <input id="searchPaidN" type="text" placeholder="Buscar cliente" />
+            <div class="row" style="gap:6px">
+              <input id="dt5Start" type="date" />
+              <input id="dt5End" type="date" />
+              <button id="btn5Clear" class="btn outline small" type="button">Limpar datas</button>
+            </div>
+          </div>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll5" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel5" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableNormaisP"></div>
+        </div>
+
+        <!-- PAGE 6: Fiado Não Pagas -->
+        <div id="page6" class="page" style="display:none">
+          <h2>Fiado — Não Pagas</h2>
+          <div class="row between" style="gap:10px; margin-bottom:10px">
+            <input id="searchFiadoNP" type="text" placeholder="Buscar cliente" />
+            <div class="row" style="gap:6px">
+              <input id="dt6Start" type="date" />
+              <input id="dt6End" type="date" />
+              <button id="btn6Clear" class="btn outline small" type="button">Limpar datas</button>
+            </div>
+          </div>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll6" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel6" class="btn danger small" disabled>Excluir selecionadas</button>
+            <button id="btnBulkPay6" class="btn success small" disabled>Pagar selecionadas</button>
+            <span class="chip">Total selecionado: <strong id="selectedTotal6">R$ 0,00</strong></span>
+          </div>
+          <div id="tableFiadoNP"></div>
+        </div>
+
+        <!-- PAGE 7: Fiado Pagas -->
+        <div id="page7" class="page" style="display:none">
+          <h2>Fiado — Pagas</h2>
+          <div class="row between" style="gap:10px; margin-bottom:10px">
+            <input id="searchFiadoP" type="text" placeholder="Buscar cliente" />
+            <div class="row" style="gap:6px">
+              <input id="dt7Start" type="date" />
+              <input id="dt7End" type="date" />
+              <button id="btn7Clear" class="btn outline small" type="button">Limpar datas</button>
+            </div>
+          </div>
+          <div class="row" style="gap:10px; margin: 0 0 12px 0">
+            <label class="radio-card" style="padding:8px 12px;">
+              <input type="checkbox" id="selectAll7" /> Selecionar todas as visíveis
+            </label>
+            <button id="btnBulkDel7" class="btn danger small" disabled>Excluir selecionadas</button>
+          </div>
+          <div id="tableFiadoP"></div>
+        </div>
+
+        <!-- PAGE 8: Relatório -->
+        <div id="page8" class="page" style="display:none">
+          <h2>Relatório</h2>
+
+          <h3 style="margin-top:0">Totais por método (pagas)</h3>
+          <div class="row between" style="gap:10px; margin-bottom:10px">
+            <div class="row" style="gap:6px">
+              <input id="dtRStart" type="date" />
+              <input id="dtREnd" type="date" />
+            </div>
+            <div class="row" style="gap:6px">
+              <button id="btnRRefresh" class="btn small" type="button">Atualizar</button>
+              <button id="btnRClear" class="btn outline small" type="button">Limpar datas</button>
+            </div>
+          </div>
+          <div id="reportBox"></div>
+
+          <h3 style="margin-top:24px">Consumo por cliente</h3>
+          <div class="row between" style="gap:10px; margin-bottom:10px">
+            <input id="rptName" type="text" placeholder="Nome do cliente" />
+            <div class="row" style="gap:10px; align-items:center">
+              <label class="radio-card"><input id="rptBaseCriacao" type="radio" name="rptDateBase" value="criacao" checked /> Base: criação</label>
+              <label class="radio-card"><input id="rptBasePagamento" type="radio" name="rptDateBase" value="pagamento" /> Base: pagamento</label>
+              <input id="dtCStart" type="date" />
+              <input id="dtCEnd" type="date" />
+              <button id="btnCSearch" class="btn small" type="button">Calcular</button>
+              <button id="btnCClear" class="btn outline small" type="button">Limpar</button>
+            </div>
+          </div>
+          <div class="chip" id="clientReportSummary">Dica: informe um nome e/ou intervalo de datas para calcular o total consumido.</div>
+          <div id="clientReportBox" style="margin-top:10px"></div>
+        </div>
       </div>
     </section>
   </div>
@@ -106,7 +253,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <!-- Config do seu app (use o QUE o console te deu) -->
+  <!-- Config do seu app -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyB1jbLNNgPocTSUreekVoFoGiZLs-4_XZo",
@@ -117,11 +264,10 @@
       appId: "1:872957969006:web:bd513b103c0674bab1dc7f",
       measurementId: "G-SXVNHVCW4H"
     };
-    // Inicialização COMPAT (necessária para seu script.js)
     firebase.initializeApp(firebaseConfig);
   </script>
 
-  <!-- Seu código da aplicação -->
+  <!-- App -->
   <script src="script.js"></script>
 </body>
 </html>

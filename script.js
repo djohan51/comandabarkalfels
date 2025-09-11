@@ -125,12 +125,16 @@ function showApp(){
  * NAVEGAÇÃO       *
  *******************/
 function goto(n){
+  // ✅ garante número quando vier de data-goto (string)
+  const nn = typeof n === 'string' ? parseInt(n, 10) : n;
+
   $$(".page").forEach(p=> { if(p) p.style.display = 'none'; });
-  const page = $(`#page${n}`);
+  const page = $(`#page${nn}`);
   if(page) page.style.display='block';
-  if(n!==2 && n!==8) renderTables();   // listas
-  if(n===2) updateTotalPreview();      // nova
-  if(n===8) renderReport();            // relatório
+
+  if(nn!==2 && nn!==8) renderTables();   // listas
+  if(nn===2) updateTotalPreview();       // nova
+  if(nn===8) renderReport();             // relatório
 }
 
 /*******************
