@@ -8,12 +8,41 @@
 </head>
 <body>
   <div class="app">
-    <section id="appSection" class="card">
+
+    <!-- LOGIN -->
+    <section id="loginSection" class="login-wrap">
+      <div class="card login-card">
+        <div class="header">
+          <div class="brand">
+            <span class="brand-dot"></span>
+            <span>Sistema de Comandas</span>
+          </div>
+          <span class="chip">Acesso obrigatório</span>
+        </div>
+        <div class="content">
+          <div class="form">
+            <div class="group">
+              <label for="loginUser">Usuário</label>
+              <input id="loginUser" type="text" autocomplete="username" placeholder="Usuário" />
+            </div>
+            <div class="group">
+              <label for="loginPass">Senha</label>
+              <input id="loginPass" type="password" autocomplete="current-password" placeholder="Senha" />
+            </div>
+            <button class="btn primary icon" id="btnLogin">🔓 Entrar</button>
+            <div class="hint">Senha padrão: <b>1234</b> (altere no <code>script.js</code>).</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APP -->
+    <section id="appSection" class="card" style="display:none">
       <div class="header">
         <div class="brand">
           <span class="brand-dot"></span>
           <strong>Sistema de Comandas</strong>
-          <span class="chip">localStorage</span>
+          <span class="chip secondary">localStorage</span>
         </div>
 
         <!-- Navegação -->
@@ -30,6 +59,11 @@
             <button class="btn small" data-goto="6">❌ Fiado Não Pagas</button>
             <button class="btn small" data-goto="7">✅ Fiado Pagas</button>
           </div>
+        </div>
+
+        <div class="authbar">
+          <span class="chip" id="userLabel"></span>
+          <button class="btn danger small" id="btnLogout">Sair</button>
         </div>
       </div>
 

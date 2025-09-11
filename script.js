@@ -1,13 +1,20 @@
 /*******************
  * CONFIG & UTILS  *
  *******************/
-const USE_FIREBASE = false; // true se quiser sincronizar com Firestore
-const LS_DATA_KEY   = 'COMANDAS_DATA_V2';
+const USE_FIREBASE = false;         // true se quiser sincronizar com Firestore
+const LS_DATA_KEY  = 'COMANDAS_DATA_V2';
+const LS_AUTH_KEY  = 'COMANDAS_AUTH_V1';
+const AUTH_PASS    = '1234';        // 🔐 senha padrão (troque aqui)
 
 const fmtBRL = (v)=> (v||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const uid    = ()=> Math.random().toString(36).slice(2) + Date.now().toString(36);
+const nowStr = ()=> {
+  const d = new Date();
+  const pad = (n)=> String(n).padStart(2,'0');
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
 
-// Parse "dd/mm/aaaa HH:MM:SS" (pt-BR) para Date
+// datas
 function parsePtBrDateTime(s){
   if(!s) return null;
   try{
@@ -31,11 +38,6 @@ function isWithinRange(dateObj, startStr, endStr){
   }
   return ok;
 }
-const nowStr = ()=> {
-  const d = new Date();
-  const pad = (n)=> String(n).padStart(2,'0');
-  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-};
 
 /*******************
  * FIREBASE (opt)  *
@@ -62,7 +64,6 @@ function getData(){
 function setData(arr){
   localStorage.setItem(LS_DATA_KEY, JSON.stringify(arr||[]));
 }
-
 async function syncFromFirebase(){
   if(!USE_FIREBASE || !FB.db) return;
   const snap = await coll().orderBy('datetime','desc').get();
@@ -72,20 +73,51 @@ async function syncFromFirebase(){
 }
 
 /*******************
+ * AUTH (local)    *
+ *******************/
+function isLoggedIn(){
+  try{ return !!JSON.parse(localStorage.getItem(LS_AUTH_KEY)); }catch{ return false }
+}
+function getLoggedUser(){
+  try{ return (JSON.parse(localStorage.getItem(LS_AUTH_KEY))||{}).user || ''; }catch{ return '' }
+}
+function setLoggedIn(user){
+  localStorage.setItem(LS_AUTH_KEY, JSON.stringify({user, ts: Date.now()}));
+}
+function logout(){
+  localStorage.removeItem(LS_AUTH_KEY);
+}
+
+/*******************
  * DOM HELPERS     *
  *******************/
 const $  = (sel)=> document.querySelector(sel);
 const $$ = (sel)=> Array.from(document.querySelectorAll(sel));
 
-let backdrop; // definido no DOMContentLoaded
+let backdrop; // modal backdrop ref
+
+function showLogin(){
+  $('#loginSection').style.display = 'flex';
+  $('#appSection').style.display   = 'none';
+}
+function showApp(){
+  $('#loginSection').style.display = 'none';
+  $('#appSection').style.display   = 'block';
+  $('#userLabel').textContent      = getLoggedUser();
+  renderTables();
+  goto(1);
+}
+function applyAuthState(){
+  if(isLoggedIn()) showApp(); else showLogin();
+}
 
 function goto(n){
   $$(".page").forEach(p=> { if(p) p.style.display = 'none'; });
   const page = $(`#page${n}`);
   if(page) page.style.display='block';
-  if(n!==2) renderTables();
-  if(n===2) updateTotalPreview();
-  if(n===8) renderReport();
+  if(n!==2 && n!==8) renderTables();   // listas
+  if(n===2) updateTotalPreview();      // nova
+  if(n===8) renderReport();            // relatório
 }
 
 function buildTable(rows){
@@ -148,7 +180,7 @@ function renderTables(){
     safeSetHTML('#tableFiado', buildTable(rows));
   }
 
-  // 4) Normais Não Pagas (data de criação)
+  // 4) Normais Não Pagas (criação)
   {
     const q = $('#searchUnpaidN')?.value || '';
     let rows = data.filter(c=> c.isFiado === false && !c.paid);
@@ -159,7 +191,7 @@ function renderTables(){
     safeSetHTML('#tableNormaisNP', buildTable(rows));
   }
 
-  // 5) Normais Pagas (data de pagamento)
+  // 5) Normais Pagas (pagamento)
   {
     const q = $('#searchPaidN')?.value || '';
     let rows = data.filter(c=> c.isFiado === false && c.paid);
@@ -170,7 +202,7 @@ function renderTables(){
     safeSetHTML('#tableNormaisP', buildTable(rows));
   }
 
-  // 6) Fiado Não Pagas (data de criação)
+  // 6) Fiado Não Pagas (criação)
   {
     const q = $('#searchFiadoNP')?.value || '';
     let rows = data.filter(c=> c.isFiado === true && !c.paid);
@@ -181,7 +213,7 @@ function renderTables(){
     safeSetHTML('#tableFiadoNP', buildTable(rows));
   }
 
-  // 7) Fiado Pagas (data de pagamento)
+  // 7) Fiado Pagas (pagamento)
   {
     const q = $('#searchFiadoP')?.value || '';
     let rows = data.filter(c=> c.isFiado === true && c.paid);
@@ -307,7 +339,6 @@ function getVisibleIds(containerId){
   if(!el) return [];
   return Array.from(el.querySelectorAll('tr[data-id]')).map(tr=> tr.getAttribute('data-id'));
 }
-
 function applyRowSelection(containerId){
   const container = document.getElementById(containerId);
   if(!container) return;
@@ -343,7 +374,6 @@ function applyRowSelection(containerId){
     };
   });
 }
-
 function refreshBulkButtonsState(){
   const btns = [
     'btnBulkDel1','btnBulkDel3','btnBulkDel4','btnBulkDel5','btnBulkDel6','btnBulkDel7',
@@ -355,7 +385,6 @@ function refreshBulkButtonsState(){
     if(b) b.disabled = !hasAny;
   });
 }
-
 function syncSelectAllBoxes(){
   const map = {
     'selectAll1': 'tableAll',
@@ -373,7 +402,6 @@ function syncSelectAllBoxes(){
     cb.checked = visible.every(id=> Selected.has(id));
   });
 }
-
 function refreshSelectedTotals(){
   const data = getData();
   const ids = Array.from(Selected);
@@ -384,7 +412,6 @@ function refreshSelectedTotals(){
   const el6 = document.getElementById('selectedTotal6');
   if(el6) el6.textContent = fmtBRL(totalSel);
 }
-
 function bulkDeleteVisible(tableId){
   const ids = getVisibleIds(tableId).filter(id=> Selected.has(id));
   if(!ids.length){ alert('Selecione ao menos uma comanda.'); return; }
@@ -409,7 +436,6 @@ function bulkDeleteVisible(tableId){
   refreshSelectedTotals();
   syncSelectAllBoxes();
 }
-
 function bulkPayVisible(tableId){
   const ids = getVisibleIds(tableId).filter(id=> Selected.has(id));
   if(!ids.length){ alert('Selecione ao menos uma comanda não paga.'); return; }
@@ -443,7 +469,6 @@ function bulkPayVisible(tableId){
   refreshSelectedTotals();
   syncSelectAllBoxes();
 }
-
 function applySelectionToAllTables(){
   applyRowSelection('tableAll');
   applyRowSelection('tableFiado');
@@ -585,11 +610,25 @@ function renderReport(){
  * BOOTSTRAP       *
  *******************/
 window.addEventListener('DOMContentLoaded', ()=>{
-  // Modal refs só agora (evita null)
+  // Modal refs
   backdrop = $('#modalBackdrop');
   $('#btnCloseModal')?.addEventListener('click', closeModal);
 
-  // Navegação
+  // LOGIN
+  $('#btnLogin')?.addEventListener('click', ()=>{
+    const u = $('#loginUser')?.value.trim();
+    const p = $('#loginPass')?.value;
+    if(!u || !p){ alert('Informe usuário e senha.'); return; }
+    if(p !== AUTH_PASS){ alert('Senha incorreta.'); return; }
+    setLoggedIn(u);
+    applyAuthState();
+  });
+  $('#btnLogout')?.addEventListener('click', ()=>{
+    logout();
+    applyAuthState();
+  });
+
+  // Navegação app
   $$('[data-goto]').forEach(b=> b.addEventListener('click', ()=> goto(b.getAttribute('data-goto')) ));
 
   // Nova comanda
@@ -623,7 +662,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#rptBaseCriacao')?.addEventListener('change', renderReport);
   $('#rptBasePagamento')?.addEventListener('change', renderReport);
 
-  // Inicial
-  // if(USE_FIREBASE) syncFromFirebase().then(()=> renderTables()); else renderTables();
-  renderTables();
+  // Dados iniciais
+  // if(USE_FIREBASE) syncFromFirebase().then(applyAuthState); else applyAuthState();
+  applyAuthState(); // usando localStorage por padrão
 });

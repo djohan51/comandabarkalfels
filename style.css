@@ -22,9 +22,11 @@ html, body{ margin:0; padding:0; background:var(--bg); color:var(--text); font: 
 .brand{ display:flex; align-items:center; gap:10px; }
 .brand-dot{ width:10px; height:10px; border-radius:50%; background:var(--primary); display:inline-block; }
 .chip{ background:var(--chip); color:var(--muted); border-radius:999px; padding:4px 10px; font-size:12px; }
+.chip.secondary{ background:#17202a; color:#9bb2c3; }
 
 .nav{ display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%; }
 .nav-left, .nav-right{ display:flex; gap:8px; flex-wrap:wrap; }
+.authbar{ display:flex; align-items:center; gap:8px; margin-left:auto; }
 
 .content{ padding:16px; }
 
@@ -36,12 +38,14 @@ html, body{ margin:0; padding:0; background:var(--bg); color:var(--text); font: 
 .form label{ color:var(--muted); }
 .form input[type="text"],
 .form input[type="number"],
-.form input[type="date"]{
+.form input[type="date"],
+.form input[type="password"]{
   background:#0f1116; border:1px solid var(--line); color:var(--text); border-radius:10px; padding:10px 12px; outline:none;
 }
 .form input[type="text"]:focus,
 .form input[type="number"]:focus,
-.form input[type="date"]:focus{ border-color:var(--primary); }
+.form input[type="date"]:focus,
+.form input[type="password"]:focus{ border-color:var(--primary); }
 
 .total{ font-size:16px; }
 .badge{ padding:2px 8px; border-radius:999px; font-size:12px; }
@@ -57,14 +61,13 @@ html, body{ margin:0; padding:0; background:var(--bg); color:var(--text); font: 
 .btn.danger{ background:var(--danger); color:#320000; }
 .btn:disabled{ opacity:.5; cursor:not-allowed; }
 
-.radio-card{ display:flex; align-items:center; gap:8px; background:#0e1116; border:1px solid var(--line); border-radius:10px; }
+.radio-card{ display:flex; align-items:center; gap:8px; background:#0e1116; border:1px solid var(--line); border-radius:10px; padding:6px 10px; }
 input[type="checkbox"], input[type="radio"]{ transform: translateY(1px); }
 
 table{ width:100%; border-collapse:collapse; border:1px solid var(--line); background:#0e1116; }
 thead th{ text-align:left; font-size:12px; color:var(--muted); border-bottom:1px solid var(--line); padding:10px; }
 tbody td{ border-top:1px solid var(--line); padding:10px; }
 td.sel-col, th.sel-col{ width:44px; text-align:center; }
-
 td[data-label="Total"]{ text-align:right; font-variant-numeric: tabular-nums; }
 
 .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:20px; }
@@ -72,6 +75,9 @@ td[data-label="Total"]{ text-align:right; font-variant-numeric: tabular-nums; }
 .modal header{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line); }
 .modal .body{ padding:14px; }
 .modal .actions{ padding:12px 14px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:flex-end; }
+
+.login-wrap{ display:flex; align-items:center; justify-content:center; min-height:70vh; }
+.login-card .hint{ color:var(--muted); font-size:12px; margin-top:8px; }
 
 @media (max-width:720px){
   .nav{ gap:8px; }
